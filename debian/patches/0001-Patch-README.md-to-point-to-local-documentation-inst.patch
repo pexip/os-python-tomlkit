@@ -1,0 +1,22 @@
+From: Scott Kitterman <scott@kitterman.com>
+Date: Fri, 14 Oct 2022 19:35:36 -0400
+Subject: Patch README.md to point to local documentation instead of Github.
+
+Forwarded: not-needed
+---
+ README.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/README.md b/README.md
+index 641e7cb..3e46af4 100644
+--- a/README.md
++++ b/README.md
+@@ -24,7 +24,7 @@ Part of the implementation has been adapted, improved and fixed from [Molten](ht
+ 
+ ## Usage
+ 
+-See the [documentation](https://github.com/sdispater/tomlkit/blob/master/docs/quickstart.rst) for more information.
++See the [documentation](/usr/share/doc/python3-tomlkit/) for more information.
+ 
+ ## Installation
+ 
