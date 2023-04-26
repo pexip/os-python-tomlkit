@@ -647,28 +647,28 @@ class Integer(int, Item):
         return self._raw
 
     def __add__(self, other):
-        return self._new(int(self._raw) + other)
+        result = super().__add__(other)
+        if result is NotImplemented:
+            return result
+        return self._new(result)
 
     def __radd__(self, other):
         result = super().__radd__(other)
-
-        if isinstance(other, Integer):
-            return self._new(result)
-
-        return result
+        if result is NotImplemented:
+            return result
+        return self._new(result)
 
     def __sub__(self, other):
         result = super().__sub__(other)
-
+        if result is NotImplemented:
+            return result
         return self._new(result)
 
     def __rsub__(self, other):
         result = super().__rsub__(other)
-
-        if isinstance(other, Integer):
-            return self._new(result)
-
-        return result
+        if result is NotImplemented:
+            return result
+        return self._new(result)
 
     def _new(self, result):
         raw = str(result)
@@ -1130,7 +1130,7 @@ class Array(Item, _CustomList):
         super().__init__(trivia)
         list.__init__(
             self,
-            [v.value for v in value if not isinstance(v, (Whitespace, Comment, Null))],
+            [v for v in value if not isinstance(v, (Whitespace, Comment, Null))],
         )
         self._index_map: Dict[int, int] = {}
         self._value = self._group_values(value)
@@ -1166,7 +1166,7 @@ class Array(Item, _CustomList):
     def unwrap(self) -> List[Any]:
         unwrapped = []
         for v in self:
-            if isinstance(v, Item):
+            if hasattr(v, "unwrap"):
                 unwrapped.append(v.unwrap())
             else:
                 unwrapped.append(v)
@@ -1317,11 +1317,14 @@ class Array(Item, _CustomList):
         return list.__len__(self)
 
     def __getitem__(self, key: Union[int, slice]) -> Any:
-        return list.__getitem__(self, key)
+        rv = cast(Item, list.__getitem__(self, key))
+        if rv.is_boolean():
+            return bool(rv)
+        return rv
 
     def __setitem__(self, key: Union[int, slice], value: Any) -> Any:
         it = item(value, _parent=self)
-        list.__setitem__(self, key, it.value)
+        list.__setitem__(self, key, it)
         if isinstance(key, slice):
             raise ValueError("slice assignment is not supported")
         if key < 0:
@@ -1332,7 +1335,7 @@ class Array(Item, _CustomList):
         it = item(value, _parent=self)
         length = len(self)
         if not isinstance(it, (Comment, Whitespace)):
-            list.insert(self, pos, it.value)
+            list.insert(self, pos, it)
         if pos < 0:
             pos += length
             if pos < 0:
@@ -1411,9 +1414,6 @@ class Array(Item, _CustomList):
 
         self._reindex()
 
-    def __str__(self):
-        return str([v.value.value for v in self._iter_items() if v.value is not None])
-
     def _getstate(self, protocol=3):
         return list(self._iter_items()), self._trivia, self._multiline
 
@@ -1438,7 +1438,7 @@ class AbstractTable(Item, _CustomDict):
         for k, v in self.items():
             if isinstance(k, Key):
                 k = k.key
-            if isinstance(v, Item):
+            if hasattr(v, "unwrap"):
                 v = v.unwrap()
             unwrapped[k] = v
 
@@ -1716,6 +1716,14 @@ class InlineTable(AbstractTable):
 
     def as_string(self) -> str:
         buf = "{"
+        last_item_idx = next(
+            (
+                i
+                for i in range(len(self._value.body) - 1, -1, -1)
+                if self._value.body[i][0] is not None
+            ),
+            None,
+        )
         for i, (k, v) in enumerate(self._value.body):
             if k is None:
                 if i == len(self._value.body) - 1:
@@ -1738,7 +1746,7 @@ class InlineTable(AbstractTable):
                 f"{v_trivia_trail}"
             )
 
-            if i != len(self._value.body) - 1:
+            if last_item_idx is not None and i < last_item_idx:
                 buf += ","
                 if self._new:
                     buf += " "
@@ -1835,7 +1843,7 @@ class AoT(Item, _CustomList):
     def unwrap(self) -> List[Dict[str, Any]]:
         unwrapped = []
         for t in self._body:
-            if isinstance(t, Item):
+            if hasattr(t, "unwrap"):
                 unwrapped.append(t.unwrap())
             else:
                 unwrapped.append(t)

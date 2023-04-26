@@ -307,6 +307,7 @@ def test_array_behaves_like_a_list():
     content = """a = [1, 2,] # Comment
 """
     doc = parse(content)
+    assert str(doc["a"]) == "[1, 2]"
 
     assert doc["a"] == [1, 2]
     doc["a"] += [3, 4]
@@ -578,6 +579,29 @@ bar = "baz"
     )
 
 
+def test_add_float_to_int():
+    content = "[table]\nmy_int = 2043"
+    doc = parse(content)
+    doc["table"]["my_int"] += 5.0
+    assert doc["table"]["my_int"] == 2048.0
+    assert isinstance(doc["table"]["my_int"], float)
+
+
+def test_sub_float_from_int():
+    content = "[table]\nmy_int = 2048"
+    doc = parse(content)
+    doc["table"]["my_int"] -= 5.0
+    assert doc["table"]["my_int"] == 2043.0
+    assert isinstance(doc["table"]["my_int"], float)
+
+
+def test_sub_int_from_float():
+    content = "[table]\nmy_int = 2048.0"
+    doc = parse(content)
+    doc["table"]["my_int"] -= 5
+    assert doc["table"]["my_int"] == 2043.0
+
+
 def test_add_sum_int_with_float():
     content = "[table]\nmy_int = 2048.3"
     doc = parse(content)
@@ -675,6 +699,17 @@ def test_dates_behave_like_dates():
     doc["dt"] += timedelta(days=1)
 
     assert doc.as_string() == "dt = 2018-07-23 # Comment"
+
+
+def test_parse_datetime_followed_by_space():
+    # issue #260
+    doc = parse("dt = 2018-07-22 ")
+    assert doc["dt"] == date(2018, 7, 22)
+    assert doc.as_string() == "dt = 2018-07-22 "
+
+    doc = parse("dt = 2013-01-24 13:48:01.123456 ")
+    assert doc["dt"] == datetime(2013, 1, 24, 13, 48, 1, 123456)
+    assert doc.as_string() == "dt = 2013-01-24 13:48:01.123456 "
 
 
 def test_times_behave_like_times():
@@ -824,7 +859,7 @@ def test_trim_comments_when_building_inline_table():
     assert table.as_string() == '{foo = "bar", baz = "foobaz"}'
 
 
-def test_deleting_inline_table_elemeent_does_not_leave_trailing_separator():
+def test_deleting_inline_table_element_does_not_leave_trailing_separator():
     table = api.inline_table()
     table["foo"] = "bar"
     table["baz"] = "boom"
@@ -843,6 +878,22 @@ def test_deleting_inline_table_elemeent_does_not_leave_trailing_separator():
     table["baz"] = "boom"
 
     assert table.as_string() == '{baz = "boom"}'
+
+
+def test_deleting_inline_table_element_does_not_leave_trailing_separator2():
+    doc = parse('a = {foo = "bar", baz = "boom"}')
+    table = doc["a"]
+    assert table.as_string() == '{foo = "bar", baz = "boom"}'
+
+    del table["baz"]
+    assert table.as_string() == '{foo = "bar" }'
+
+    del table["foo"]
+    assert table.as_string() == "{ }"
+
+    table["baz"] = "boom"
+
+    assert table.as_string() == '{ baz = "boom"}'
 
 
 def test_booleans_comparison():
