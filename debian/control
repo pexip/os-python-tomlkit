@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Pexip AS <packaging@pexip.com>
 XSBC-Pexip-Original-Maintainer: Debian Python Team <team+python@tracker.debian.org>
 XSBC-Pexip-Original-Uploaders: Scott Kitterman <scott@kitterman.com>
-Standards-Version: 4.6.1
+Standards-Version: 4.6.2
 Build-Depends:
  debhelper-compat (= 12),
  dh-python,
